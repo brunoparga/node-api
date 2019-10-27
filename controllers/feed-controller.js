@@ -34,13 +34,16 @@ exports.handleErrors = (req, _res, next) => {
   if (errors.length > 0) {
     throwError(422, 'Your Post could not be created due to errors.');
   }
+  if (!req.file) {
+    throwError(422, 'No image provided.');
+  }
   next();
 };
 
 exports.createPost = (req, res, next) => new Post({
   // This weird line picks out only the title and content from the body.
   ...(({ title, content }) => ({ title, content }))(req.body),
-  imageURL: 'images/duck.jpg',
+  imageURL: req.file.path,
   creator: { name: 'Sblerbous M. Bananistan' },
 }).save()
   .then((post) => res.status(201).json({ post }))
