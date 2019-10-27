@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+const Post = require('../models/post');
 
 exports.getPosts = (_req, res) => {
   res.status(200).json({
@@ -15,23 +16,6 @@ exports.getPosts = (_req, res) => {
   });
 };
 
-exports.createPost = (req, res) => {
-  const { title, content } = req.body;
-  // Create post in DB
-  res.status(201).json({
-    message: 'Post created successfully!',
-    post: {
-      _id: new Date().toISOString(),
-      title,
-      content,
-      creator: {
-        name: 'Bananistan',
-      },
-      createdAt: new Date(),
-    },
-  });
-};
-
 exports.processErrors = (req, res, next) => {
   const errors = validationResult(req).array();
   if (errors.length > 0) {
@@ -42,4 +26,16 @@ exports.processErrors = (req, res, next) => {
   } else {
     next();
   }
+};
+
+exports.createPost = (req, res) => {
+  new Post({
+    // This weird line picks out only the title and content from the body.
+    ...(({ title, content }) => ({ title, content }))(req.body),
+    imageURL: 'images/duck.jpg',
+    creator: { name: 'Sblerbous M. Bananistan' },
+  }).save()
+    .then((post) => {
+      res.status(201).json({ message: 'Post created successfully!', post });
+    });
 };
