@@ -1,3 +1,5 @@
+const { validationResult } = require('express-validator');
+
 exports.getPosts = (_req, res) => {
   res.status(200).json({
     posts: [{
@@ -28,4 +30,16 @@ exports.createPost = (req, res) => {
       createdAt: new Date(),
     },
   });
+};
+
+exports.processErrors = (req, res, next) => {
+  const errors = validationResult(req).array();
+  if (errors.length > 0) {
+    res.status(422).json({
+      message: 'Your Post could not be created due to errors.',
+      errors,
+    });
+  } else {
+    next();
+  }
 };
