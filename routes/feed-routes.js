@@ -7,6 +7,6 @@ const validator = require('../middleware/validator');
 router.get('/posts', controller.getPosts);
 
 // POST /feed/post
-router.post('/post', validator, controller.processErrors, controller.createPost);
+router.post('/post', validator, controller.handleErrors, controller.createPost);
 
 module.exports = router;

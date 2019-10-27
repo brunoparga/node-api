@@ -16,19 +16,17 @@ exports.getPosts = (_req, res) => {
   });
 };
 
-exports.processErrors = (req, res, next) => {
+exports.handleErrors = (req, res, next) => {
   const errors = validationResult(req).array();
   if (errors.length > 0) {
-    res.status(422).json({
-      message: 'Your Post could not be created due to errors.',
-      errors,
-    });
-  } else {
-    next();
+    const error = new Error('Your Post could not be created due to errors.');
+    error.statusCode = 422;
+    throw error;
   }
+  next();
 };
 
-exports.createPost = (req, res) => {
+exports.createPost = (req, res, next) => {
   new Post({
     // This weird line picks out only the title and content from the body.
     ...(({ title, content }) => ({ title, content }))(req.body),
@@ -37,5 +35,12 @@ exports.createPost = (req, res) => {
   }).save()
     .then((post) => {
       res.status(201).json({ message: 'Post created successfully!', post });
+    })
+    .catch((err) => {
+      const newErr = err;
+      if (!newErr.statusCode) {
+        newErr.statusCode = 500;
+      }
+      next(newErr);
     });
 };
