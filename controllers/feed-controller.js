@@ -46,9 +46,20 @@ const setImageURL = (req) => {
   return imageURL;
 };
 
-exports.getPosts = (_req, res, next) => Post.find()
-  .then((posts) => res.status(200).json({ posts }))
-  .catch((err) => forwardError(err, next));
+exports.getPosts = (req, res, next) => {
+  const currentPage = req.query.page || 1;
+  const perPage = 2;
+  let totalItems;
+  Post.find().countDocuments()
+    .then((count) => {
+      totalItems = count;
+      return Post.find()
+        .skip((currentPage - 1) * perPage)
+        .limit(perPage);
+    })
+    .then((posts) => res.status(200).json({ posts, totalItems }))
+    .catch((err) => forwardError(err, next));
+};
 
 exports.getPost = (req, res, next) => Post
   .findById(req.params.postId)
