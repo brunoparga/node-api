@@ -5,6 +5,17 @@ const validator = require('../middleware/validator');
 
 router.get('/posts', controller.getPosts);
 router.get('/post/:postId', controller.getPost);
-router.post('/post', validator, controller.handleErrors, controller.createPost);
+router.post(
+  '/post',
+  validator,
+  controller.handleCreateErrors,
+  controller.createPost,
+);
+router.put(
+  '/post/:postId',
+  validator,
+  controller.handleUpdateErrors,
+  controller.updatePost,
+);
 
 module.exports = router;
