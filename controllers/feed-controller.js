@@ -17,19 +17,11 @@ const throwError = (status, message) => {
   throw error;
 };
 
-exports.getPosts = (_req, res, next) => Post.find()
-  .then((posts) => res.status(200).json({ posts }))
-  .catch((err) => forwardError(err, next));
-
-exports.getPost = (req, res, next) => Post
-  .findById(req.params.postId)
-  .then((post) => {
-    if (!post) {
-      throwError(404, 'Post not found.');
-    }
-    res.status(200).json({ post });
-  })
-  .catch((err) => forwardError(err, next));
+const check404 = (post) => {
+  if (!post) {
+    throwError(404, 'Post not found.');
+  }
+};
 
 const handleErrors = (req, _res, next, update = false) => {
   const errors = validationResult(req).array();
@@ -43,21 +35,6 @@ const handleErrors = (req, _res, next, update = false) => {
   next();
 };
 
-exports.handleCreateErrors = (req, res, next) => handleErrors(req, res, next);
-
-exports.handleUpdateErrors = (req, res, next) => handleErrors(req, res, next, true);
-
-
-exports.createPost = (req, res, next) => new Post({
-  // This weird line picks out only the title and content from the body.
-  ...(({ title, content }) => ({ title, content }))(req.body),
-  imageURL: req.file.path,
-  creator: { name: 'Sblerbous M. Bananistan' },
-}).save()
-  .then((post) => res.status(201).json({ post }))
-  .catch((err) => forwardError(err, next));
-
-
 const setImageURL = (req) => {
   let imageURL = req.body.image;
   if (req.file) {
@@ -69,20 +46,55 @@ const setImageURL = (req) => {
   return imageURL;
 };
 
+exports.getPosts = (_req, res, next) => Post.find()
+  .then((posts) => res.status(200).json({ posts }))
+  .catch((err) => forwardError(err, next));
+
+exports.getPost = (req, res, next) => Post
+  .findById(req.params.postId)
+  .then((post) => {
+    check404(post);
+    res.status(200).json({ post });
+  })
+  .catch((err) => forwardError(err, next));
+
+exports.handleCreateErrors = (req, res, next) => handleErrors(req, res, next);
+
+exports.handleUpdateErrors = (req, res, next) => handleErrors(req, res, next, true);
+
+exports.createPost = (req, res, next) => new Post({
+  // This weird line picks out only the title and content from the body.
+  ...(({ title, content }) => ({ title, content }))(req.body),
+  imageURL: req.file.path,
+  creator: { name: 'Sblerbous M. Bananistan' },
+}).save()
+  .then((post) => res.status(201).json({ post }))
+  .catch((err) => forwardError(err, next));
+
 exports.updatePost = (req, res, next) => {
   const imageURL = setImageURL(req);
   Post.findById(req.params.postId)
     .then((post) => {
-      if (!post) {
-        throwError(404, 'Could not find post.');
-      }
+      check404(post);
       const newPost = post;
       ['title', 'content'].forEach((prop) => { newPost[prop] = req.body[prop]; });
       newPost.imageURL = imageURL;
       if (imageURL !== post.imageURL) {
-        fs.unlink(path.join(__dirname, '..', post.imageURL));
+        fs.unlink(path.join(__dirname, '..', post.imageURL), () => {});
       }
       return newPost.save();
+    })
+    .then((post) => res.status(200).json({ post }))
+    .catch((err) => forwardError(err, next));
+};
+
+exports.deletePost = (req, res, next) => {
+  Post.findById(req.params.postId)
+    .then((post) => {
+      check404(post);
+      // TODO: check logged in user
+      fs.unlink(path.join(__dirname, '..', post.imageURL), () => {});
+      return post.remove();
     })
     .then((post) => res.status(200).json({ post }))
     .catch((err) => forwardError(err, next));

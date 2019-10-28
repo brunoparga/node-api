@@ -17,5 +17,6 @@ router.put(
   controller.handleUpdateErrors,
   controller.updatePost,
 );
+router.delete('/post/:postId', controller.deletePost);
 
 module.exports = router;
