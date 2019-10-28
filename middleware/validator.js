@@ -1,6 +1,6 @@
 const { body } = require('express-validator');
 
-module.exports = [
+exports.post = [
   body('title')
     .trim()
     .isLength({ min: 5 })

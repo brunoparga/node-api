@@ -11,9 +11,10 @@ const forwardError = (err, next) => {
   next(newErr);
 };
 
-const throwError = (status, message) => {
+const throwError = (status, message, data) => {
   const error = new Error(message);
   error.statusCode = status;
+  error.data = data;
   throw error;
 };
 
@@ -23,14 +24,18 @@ const check404 = (post) => {
   }
 };
 
-const handleErrors = (req, _res, next, update = false) => {
-  const errors = validationResult(req).array();
-  if (errors.length > 0) {
-    throwError(422,
-      `Your Post could not be ${update ? 'updated' : 'created'} due to errors.`);
+// TODO: refactor this and the auth controller's function into just one
+const handleErrors = (req, next, update = false) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    throwError(
+      422,
+      `Your Post could not be ${update ? 'updated' : 'created'} due to errors.`,
+      errors.array(),
+    );
   }
   if (!update && !req.file) {
-    throwError(422, 'No image provided.');
+    throwError(422, 'No image provided.', errors.array());
   }
   next();
 };
@@ -69,9 +74,9 @@ exports.getPost = (req, res, next) => Post
   })
   .catch((err) => forwardError(err, next));
 
-exports.handleCreateErrors = (req, res, next) => handleErrors(req, res, next);
+exports.handleCreateErrors = (req, _res, next) => handleErrors(req, next);
 
-exports.handleUpdateErrors = (req, res, next) => handleErrors(req, res, next, true);
+exports.handleUpdateErrors = (req, _res, next) => handleErrors(req, next, true);
 
 exports.createPost = (req, res, next) => new Post({
   // This weird line picks out only the title and content from the body.

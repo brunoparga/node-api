@@ -3,5 +3,5 @@
 module.exports = (error, req, res, next) => {
   console.error(error);
   const status = error.statusCode || 500;
-  res.status(status).json({ message: error.message });
+  res.status(status).json({ message: error.message, data: error.data });
 };

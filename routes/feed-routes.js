@@ -1,19 +1,19 @@
 const router = require('express').Router();
 const controller = require('../controllers/feed-controller');
 
-const validator = require('../middleware/validator');
+const validate = require('../middleware/validator').post;
 
 router.get('/posts', controller.getPosts);
 router.get('/post/:postId', controller.getPost);
 router.post(
   '/post',
-  validator,
+  validate,
   controller.handleCreateErrors,
   controller.createPost,
 );
 router.put(
   '/post/:postId',
-  validator,
+  validate,
   controller.handleUpdateErrors,
   controller.updatePost,
 );
