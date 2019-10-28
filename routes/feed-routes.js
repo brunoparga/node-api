@@ -20,6 +20,6 @@ router.put(
   controller.handleUpdateErrors,
   controller.updatePost,
 );
-router.delete('/post/:postId', controller.deletePost);
+router.delete('/post/:postId', isAuth, controller.deletePost);
 
 module.exports = router;

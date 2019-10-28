@@ -17,10 +17,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'I am born. I am new.',
   },
-  posts: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'post',
-  },
+  posts: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Post',
+    },
+  ],
 },
 { timestamps: true });
 

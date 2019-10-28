@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { validationResult } = require('express-validator');
 const Post = require('../models/post');
+const User = require('../models/user');
 
 const forwardError = (err, next) => {
   const newErr = err;
@@ -18,9 +19,12 @@ const throwError = (status, message, data) => {
   throw error;
 };
 
-const check404 = (post) => {
+const checkPost = (post, req = null) => {
   if (!post) {
     throwError(404, 'Post not found.');
+  }
+  if (req && post.creator.toString() !== req.userId) {
+    throwError(403, 'Cannot change other user\'s post.', []);
   }
 };
 
@@ -69,7 +73,7 @@ exports.getPosts = (req, res, next) => {
 exports.getPost = (req, res, next) => Post
   .findById(req.params.postId)
   .then((post) => {
-    check404(post);
+    checkPost(post);
     res.status(200).json({ post });
   })
   .catch((err) => forwardError(err, next));
@@ -78,25 +82,36 @@ exports.handleCreateErrors = (req, _res, next) => handleErrors(req, next);
 
 exports.handleUpdateErrors = (req, _res, next) => handleErrors(req, next, true);
 
-exports.createPost = (req, res, next) => new Post({
-  // This weird line picks out only the title and content from the body.
-  ...(({ title, content }) => ({ title, content }))(req.body),
-  imageURL: req.file.path,
-  creator: { name: 'Sblerbous M. Bananistan' },
-}).save()
-  .then((post) => res.status(201).json({ post }))
-  .catch((err) => forwardError(err, next));
+exports.createPost = (req, res, next) => {
+  const post = new Post({
+    // This weird line picks out only the title and content from the body.
+    ...(({ title, content }) => ({ title, content }))(req.body),
+    imageURL: req.file.path,
+    creator: req.userId,
+  });
+  post.save()
+    .then(() => User.findById(req.userId))
+    .then((user) => {
+      user.posts.push(post);
+      return user.save();
+    })
+    .then((user) => {
+      const creator = (({ _id, name }) => ({ _id, name }))(user);
+      res.status(201).json({ post, creator });
+    })
+    .catch((err) => forwardError(err, next));
+};
 
 exports.updatePost = (req, res, next) => {
   const imageURL = setImageURL(req);
   Post.findById(req.params.postId)
     .then((post) => {
-      check404(post);
+      checkPost(post, req);
       const newPost = post;
       ['title', 'content'].forEach((prop) => { newPost[prop] = req.body[prop]; });
       newPost.imageURL = imageURL;
       if (imageURL !== post.imageURL) {
-        fs.unlink(path.join(__dirname, '..', post.imageURL), () => {});
+        fs.unlink(path.join(__dirname, '..', post.imageURL), () => { });
       }
       return newPost.save();
     })
@@ -107,9 +122,8 @@ exports.updatePost = (req, res, next) => {
 exports.deletePost = (req, res, next) => {
   Post.findById(req.params.postId)
     .then((post) => {
-      check404(post);
-      // TODO: check logged in user
-      fs.unlink(path.join(__dirname, '..', post.imageURL), () => {});
+      checkPost(post, req);
+      fs.unlink(path.join(__dirname, '..', post.imageURL), () => { });
       return post.remove();
     })
     .then((post) => res.status(200).json({ post }))
