@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    required: true,
+    default: 'I am born. I am new.',
   },
   posts: {
     type: mongoose.Schema.Types.ObjectId,

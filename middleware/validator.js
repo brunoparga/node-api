@@ -1,4 +1,20 @@
 const { body } = require('express-validator');
+const User = require('../models/user');
+
+exports.user = [
+  body('email')
+    .isEmail()
+    .withMessage('Please enter a valid email')
+    .custom((email) => User.findOne({ email })
+      .then((user) => {
+        if (user) {
+          Promise.reject(new Error('Email already exists.'));
+        }
+      }))
+    .normalizeEmail(),
+  body('password').trim().isLength({ min: 5 }),
+  body('name').trim().not().isEmpty(),
+];
 
 exports.post = [
   body('title')
