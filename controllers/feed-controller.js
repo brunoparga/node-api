@@ -25,7 +25,7 @@ const checkPost = (post, req = false) => {
   if (!post) {
     throwError(404, 'Post not found.');
   }
-  if (req && post.creator.toString() !== req.userId) {
+  if (req && post.creator._id.toString() !== req.userId) {
     throwError(403, 'Cannot change other user\'s post.', []);
   }
 };
@@ -74,6 +74,7 @@ exports.getPosts = async (req, res, next) => {
   try {
     const totalItems = await Post.find().countDocuments();
     const posts = await Post.find()
+      .sort({ createdAt: -1 })
       .skip((currentPage - 1) * perPage)
       .limit(perPage)
       .populate('creator');
@@ -110,7 +111,16 @@ exports.createPost = async (req, res, next) => {
     user.posts.push(post);
     const savedUser = await user.save();
     const creator = (({ _id, name }) => ({ _id, name }))(user);
-    socket.getIO().emit('posts', { action: 'create', post });
+    socket.getIO().emit('posts', {
+      action: 'create',
+      post: {
+        ...post._doc,
+        creator: {
+          _id: user._id,
+          name: user.name,
+        },
+      },
+    });
     res.status(201).json({ post, creator });
     return savedUser;
   } catch (err) {
@@ -120,13 +130,14 @@ exports.createPost = async (req, res, next) => {
 
 exports.updatePost = async (req, res, next) => {
   try {
-    let post = await Post.findById(req.params.postId);
+    let post = await Post.findById(req.params.postId).populate('creator');
     checkPost(post, req);
     ['title', 'content'].forEach((prop) => {
       post[prop] = req.body[prop];
     });
     post = dealWithImage(post, req);
     await post.save();
+    socket.getIO().emit('posts', { action: 'update', post });
     res.status(200).json({ post });
   } catch (err) {
     forwardError(err, next);
