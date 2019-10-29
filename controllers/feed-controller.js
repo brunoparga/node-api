@@ -4,7 +4,6 @@ const { validationResult } = require('express-validator');
 
 const Post = require('../models/post');
 const User = require('../models/user');
-const socket = require('../socket');
 
 const forwardError = (err, next) => {
   const newErr = err;
@@ -111,16 +110,6 @@ exports.createPost = async (req, res, next) => {
     user.posts.push(post);
     const savedUser = await user.save();
     const creator = (({ _id, name }) => ({ _id, name }))(user);
-    socket.getIO().emit('posts', {
-      action: 'create',
-      post: {
-        ...post._doc,
-        creator: {
-          _id: user._id,
-          name: user.name,
-        },
-      },
-    });
     res.status(201).json({ post, creator });
     return savedUser;
   } catch (err) {
@@ -137,7 +126,6 @@ exports.updatePost = async (req, res, next) => {
     });
     post = dealWithImage(post, req);
     await post.save();
-    socket.getIO().emit('posts', { action: 'update', post });
     res.status(200).json({ post });
   } catch (err) {
     forwardError(err, next);
@@ -154,7 +142,6 @@ exports.deletePost = async (req, res, next) => {
     const user = await User.findById(req.userId);
     user.posts.pull(postId);
     await user.save();
-    socket.getIO().emit('posts', { action: 'delete', postId })
     res.status(200).json({ message: `Post ${postId} deleted.` });
   } catch (err) {
     forwardError(err, next);
