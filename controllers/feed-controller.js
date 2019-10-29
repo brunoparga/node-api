@@ -1,8 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const { validationResult } = require('express-validator');
+
 const Post = require('../models/post');
 const User = require('../models/user');
+const socket = require('../socket');
 
 const forwardError = (err, next) => {
   const newErr = err;
@@ -73,7 +75,8 @@ exports.getPosts = async (req, res, next) => {
     const totalItems = await Post.find().countDocuments();
     const posts = await Post.find()
       .skip((currentPage - 1) * perPage)
-      .limit(perPage);
+      .limit(perPage)
+      .populate('creator');
     res.status(200).json({ posts, totalItems });
   } catch (err) {
     forwardError(err, next);
@@ -107,6 +110,7 @@ exports.createPost = async (req, res, next) => {
     user.posts.push(post);
     const savedUser = await user.save();
     const creator = (({ _id, name }) => ({ _id, name }))(user);
+    socket.getIO().emit('posts', { action: 'create', post });
     res.status(201).json({ post, creator });
     return savedUser;
   } catch (err) {

@@ -9,6 +9,7 @@ const setHeaders = require('./middleware/set-headers');
 const authRoutes = require('./routes/auth-routes');
 const feedRoutes = require('./routes/feed-routes');
 const errorHandler = require('./middleware/error-handler');
+const socketIO = require('./socket');
 
 const app = express();
 
@@ -22,4 +23,4 @@ app.use(errorHandler);
 
 mongoose.connect(process.env.MONGODB_URI,
   { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => app.listen(8080));
+  .then(() => socketIO.init(app.listen(8080)));
