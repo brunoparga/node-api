@@ -19,7 +19,7 @@ const throwError = (status, message, data) => {
   throw error;
 };
 
-const checkPost = (post, req = null) => {
+const checkPost = (post, req = false) => {
   if (!post) {
     throwError(404, 'Post not found.');
   }
@@ -72,6 +72,7 @@ exports.getPosts = (req, res, next) => {
 
 exports.getPost = (req, res, next) => Post
   .findById(req.params.postId)
+  .populate('creator')
   .then((post) => {
     checkPost(post);
     res.status(200).json({ post });
@@ -120,12 +121,18 @@ exports.updatePost = (req, res, next) => {
 };
 
 exports.deletePost = (req, res, next) => {
-  Post.findById(req.params.postId)
+  const { postId } = req.params;
+  Post.findById(postId)
     .then((post) => {
       checkPost(post, req);
       fs.unlink(path.join(__dirname, '..', post.imageURL), () => { });
-      return post.remove();
+      post.remove();
+      return User.findById(req.userId);
     })
-    .then((post) => res.status(200).json({ post }))
+    .then((user) => {
+      user.posts.pull(postId);
+      return user.save();
+    })
+    .then(() => res.status(200).json({ message: `Post ${postId} deleted.` }))
     .catch((err) => forwardError(err, next));
 };
