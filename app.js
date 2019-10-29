@@ -17,7 +17,20 @@ app.use(bodyParser.json());
 app.use(multer);
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(setHeaders);
-app.use('/graphql', graphqlHTTP({ schema, rootValue, graphiql: true }));
+app.use('/graphql', graphqlHTTP({
+  schema,
+  rootValue,
+  graphiql: true,
+  formatError(err) {
+    if (!err.originalError) {
+      return err;
+    }
+    const message = err.message || 'An error occurred.';
+    const code = err.originalError.code || 500;
+    const { data } = err.originalError;
+    return { message, code, data };
+  },
+}));
 app.use(errorHandler);
 
 mongoose.connect(process.env.MONGODB_URI,
