@@ -55,84 +55,91 @@ const setImageURL = (req) => {
   return imageURL;
 };
 
-exports.getPosts = (req, res, next) => {
-  const currentPage = req.query.page || 1;
-  const perPage = 2;
-  let totalItems;
-  Post.find().countDocuments()
-    .then((count) => {
-      totalItems = count;
-      return Post.find()
-        .skip((currentPage - 1) * perPage)
-        .limit(perPage);
-    })
-    .then((posts) => res.status(200).json({ posts, totalItems }))
-    .catch((err) => forwardError(err, next));
+const dealWithImage = (post, req) => {
+  const imageURL = setImageURL(req);
+  // Delete old post image if there is a new one
+  if (imageURL !== post.imageURL) {
+    fs.unlink(path.join(__dirname, '..', post.imageURL), () => { });
+  }
+  const newPost = post;
+  newPost.imageURL = imageURL;
+  return newPost;
 };
 
-exports.getPost = (req, res, next) => Post
-  .findById(req.params.postId)
-  .populate('creator')
-  .then((post) => {
+exports.getPosts = async (req, res, next) => {
+  const currentPage = req.query.page || 1;
+  const perPage = 2;
+  try {
+    const totalItems = await Post.find().countDocuments();
+    const posts = await Post.find()
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage);
+    res.status(200).json({ posts, totalItems });
+  } catch (err) {
+    forwardError(err, next);
+  }
+};
+
+exports.getPost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.postId).populate('creator');
     checkPost(post);
     res.status(200).json({ post });
-  })
-  .catch((err) => forwardError(err, next));
+  } catch (err) {
+    forwardError(err, next);
+  }
+};
 
 exports.handleCreateErrors = (req, _res, next) => handleErrors(req, next);
 
 exports.handleUpdateErrors = (req, _res, next) => handleErrors(req, next, true);
 
-exports.createPost = (req, res, next) => {
+exports.createPost = async (req, res, next) => {
   const post = new Post({
     // This weird line picks out only the title and content from the body.
     ...(({ title, content }) => ({ title, content }))(req.body),
     imageURL: req.file.path,
     creator: req.userId,
   });
-  post.save()
-    .then(() => User.findById(req.userId))
-    .then((user) => {
-      user.posts.push(post);
-      return user.save();
-    })
-    .then((user) => {
-      const creator = (({ _id, name }) => ({ _id, name }))(user);
-      res.status(201).json({ post, creator });
-    })
-    .catch((err) => forwardError(err, next));
+  try {
+    await post.save();
+    const user = await User.findById(req.userId);
+    user.posts.push(post);
+    await user.save();
+    const creator = (({ _id, name }) => ({ _id, name }))(user);
+    res.status(201).json({ post, creator });
+  } catch (err) {
+    forwardError(err, next);
+  }
 };
 
-exports.updatePost = (req, res, next) => {
-  const imageURL = setImageURL(req);
-  Post.findById(req.params.postId)
-    .then((post) => {
-      checkPost(post, req);
-      const newPost = post;
-      ['title', 'content'].forEach((prop) => { newPost[prop] = req.body[prop]; });
-      newPost.imageURL = imageURL;
-      if (imageURL !== post.imageURL) {
-        fs.unlink(path.join(__dirname, '..', post.imageURL), () => { });
-      }
-      return newPost.save();
-    })
-    .then((post) => res.status(200).json({ post }))
-    .catch((err) => forwardError(err, next));
+exports.updatePost = async (req, res, next) => {
+  try {
+    let post = await Post.findById(req.params.postId);
+    checkPost(post, req);
+    ['title', 'content'].forEach((prop) => {
+      post[prop] = req.body[prop];
+    });
+    post = dealWithImage(post, req);
+    await post.save();
+    res.status(200).json({ post });
+  } catch (err) {
+    forwardError(err, next);
+  }
 };
 
-exports.deletePost = (req, res, next) => {
+exports.deletePost = async (req, res, next) => {
   const { postId } = req.params;
-  Post.findById(postId)
-    .then((post) => {
-      checkPost(post, req);
-      fs.unlink(path.join(__dirname, '..', post.imageURL), () => { });
-      post.remove();
-      return User.findById(req.userId);
-    })
-    .then((user) => {
-      user.posts.pull(postId);
-      return user.save();
-    })
-    .then(() => res.status(200).json({ message: `Post ${postId} deleted.` }))
-    .catch((err) => forwardError(err, next));
+  try {
+    const post = await Post.findById(postId);
+    checkPost(post, req);
+    fs.unlink(path.join(__dirname, '..', post.imageURL), () => { });
+    await post.remove();
+    const user = await User.findById(req.userId);
+    user.posts.pull(postId);
+    await user.save();
+    res.status(200).json({ message: `Post ${postId} deleted.` });
+  } catch (err) {
+    forwardError(err, next);
+  }
 };
