@@ -76,3 +76,20 @@ exports.login = (req, res, next) => {
     })
     .catch((err) => forwardError(err, next));
 };
+
+exports.getStatus = (req, res, next) => {
+  User.findById(req.userId)
+    .then((user) => res.status(200).json({ status: user.status }))
+    .catch((err) => forwardError(err, next));
+};
+
+exports.setStatus = (req, res, next) => {
+  User.findById(req.userId)
+    .then((user) => {
+      const newUser = user;
+      newUser.status = req.body.status;
+      newUser.save();
+    })
+    .then(() => res.status(200).json({ message: 'Your new status has been set.' }))
+    .catch((err) => forwardError(err, next));
+};
