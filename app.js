@@ -17,7 +17,7 @@ app.use(bodyParser.json());
 app.use(multer);
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(setHeaders);
-app.use('/graphql', graphqlHTTP({ schema, rootValue }));
+app.use('/graphql', graphqlHTTP({ schema, rootValue, graphiql: true }));
 app.use(errorHandler);
 
 mongoose.connect(process.env.MONGODB_URI,
