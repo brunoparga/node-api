@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const multer = require('./middleware/multer');
 const setHeaders = require('./middleware/set-headers');
 const errorHandler = require('./middleware/error-handler');
+const auth = require('./middleware/auth');
 const schema = require('./graphql/schema');
 const rootValue = require('./graphql/resolvers');
 
@@ -17,6 +18,7 @@ app.use(bodyParser.json());
 app.use(multer);
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(setHeaders);
+app.use(auth);
 app.use('/graphql', graphqlHTTP({
   schema,
   rootValue,
