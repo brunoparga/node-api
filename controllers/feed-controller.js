@@ -71,13 +71,13 @@ exports.getPosts = async (req, res, next) => {
   const currentPage = req.query.page || 1;
   const perPage = 2;
   try {
-    const totalItems = await Post.find().countDocuments();
+    const totalPosts = await Post.find().countDocuments();
     const posts = await Post.find()
       .sort({ createdAt: -1 })
       .skip((currentPage - 1) * perPage)
       .limit(perPage)
       .populate('creator');
-    res.status(200).json({ posts, totalItems });
+    res.status(200).json({ posts, totalPosts });
   } catch (err) {
     forwardError(err, next);
   }

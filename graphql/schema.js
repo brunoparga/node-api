@@ -22,6 +22,11 @@ module.exports = buildSchema(`
     imageURL: String!
   }
 
+  type PostList {
+    posts: [Post!]!
+    totalPosts: Int!
+  }
+
   type User {
     _id: ID!
     email: String!
@@ -44,6 +49,7 @@ module.exports = buildSchema(`
   
   type RootQuery {
     login(email: String!, password: String!): AuthData!
+    posts: PostList!
   }
   
   schema {

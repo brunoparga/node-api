@@ -13,6 +13,12 @@ const throwError = (status, message, data = []) => {
   throw error;
 };
 
+const validateAuth = (req) => {
+  if (!req.isAuth) {
+    throwError(401, 'User not authenticated.');
+  }
+};
+
 const validateSignup = (input) => {
   const { email, password, name } = input;
   const errors = [];
@@ -42,11 +48,7 @@ const validateLogin = async ({ email, password }) => {
   return user;
 };
 
-const validatePost = ({ title, content, imageURL }, req) => {
-  // This here should probably be extracted into a separate fn later
-  if (!req.isAuth) {
-    throwError(401, 'User not authenticated.');
-  }
+const validatePost = ({ title, content, imageURL }) => {
   const errors = [];
   if (!validator.isLength(title, { min: 5 })) {
     errors.push('Title must be 5 characters long.');
@@ -61,6 +63,13 @@ const validatePost = ({ title, content, imageURL }, req) => {
     throwError(422, 'Invalid input', errors);
   }
 };
+
+const preparePost = (post) => ({
+  ...post._doc,
+  _id: post._id.toString(),
+  createdAt: post.createdAt.toISOString(),
+  updatedAt: post.updatedAt.toISOString(),
+});
 
 module.exports = {
   async createUser({ userInput }) {
@@ -89,7 +98,8 @@ module.exports = {
   },
 
   async createPost({ postInput }, req) {
-    validatePost(postInput, req);
+    validateAuth(req);
+    validatePost(postInput);
     const { title, content, imageURL } = postInput;
     const creator = await User.findById(req.userId);
     if (!creator) {
@@ -100,11 +110,20 @@ module.exports = {
     }).save();
     creator.posts.push(post);
     await creator.save();
-    return {
-      ...post._doc,
-      _id: post._id.toString(),
-      createdAt: post.createdAt.toISOString(),
-      updatedAt: post.updatedAt.toISOString(),
-    };
+    return preparePost(post);
+  },
+
+  async posts(_args, req) {
+    validateAuth(req);
+    const currentPage = req.query.page || 1;
+    const perPage = 2;
+    const totalPosts = await Post.find().countDocuments();
+    let posts = await Post.find()
+      .sort({ createdAt: -1 })
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage)
+      .populate('creator');
+    posts = posts.map(preparePost);
+    return { posts, totalPosts };
   },
 };
