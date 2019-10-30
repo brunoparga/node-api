@@ -13,7 +13,7 @@ const forwardError = (err, next) => {
   next(newErr);
 };
 
-const throwError = (status, message, data) => {
+const throwError = (status, message, data = []) => {
   const error = new Error(message);
   error.statusCode = status;
   error.data = data;
@@ -25,7 +25,7 @@ const checkPost = (post, req = false) => {
     throwError(404, 'Post not found.');
   }
   if (req && post.creator._id.toString() !== req.userId) {
-    throwError(403, 'Cannot change other user\'s post.', []);
+    throwError(403, 'Cannot change other user\'s post.');
   }
 };
 
