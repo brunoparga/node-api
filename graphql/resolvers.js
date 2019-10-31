@@ -113,9 +113,9 @@ module.exports = {
     return preparePost(post);
   },
 
-  async posts(_args, req) {
+  async posts({ page }, req) {
     validateAuth(req);
-    const currentPage = req.query.page || 1;
+    const currentPage = page || 1;
     const perPage = 2;
     const totalPosts = await Post.find().countDocuments();
     let posts = await Post.find()
