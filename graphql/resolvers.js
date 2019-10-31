@@ -178,4 +178,24 @@ module.exports = {
       return false;
     }
   },
+
+  async user(_args, req) {
+    validateAuth(req);
+    const user = await User.findById(req.userId);
+    if (!user) {
+      throwError(404, 'User not found.');
+    }
+    return { ...user._doc, _id: user._id.toString() };
+  },
+
+  async updateStatus({ status }, req) {
+    validateAuth(req);
+    const user = await User.findById(req.userId);
+    if (!user) {
+      throwError(404, 'User not found.');
+    }
+    user.status = status;
+    await user.save();
+    return { ...user._doc, _id: user._id.toString() };
+  },
 };
