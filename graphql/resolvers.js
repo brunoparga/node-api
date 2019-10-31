@@ -123,4 +123,13 @@ module.exports = {
     posts = posts.map(preparePost);
     return { posts, totalPosts };
   },
+
+  async post({ _id }, req) {
+    validateAuth(req);
+    const post = await Post.findById(_id).populate('creator');
+    if (!post) {
+      throwError(404, 'Post not found.');
+    }
+    return preparePost(post);
+  },
 };
