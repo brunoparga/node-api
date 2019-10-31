@@ -75,7 +75,7 @@ const updatePostData = (post, data) => {
   ['title', 'content'].forEach((prop) => {
     updatedPost[prop] = data[prop];
   });
-  if (data.imageURL !== 'undefined') {
+  if (data.imageURL !== 'unchanged') {
     updatedPost.imageURL = data.imageURL;
   }
   return updatedPost;
