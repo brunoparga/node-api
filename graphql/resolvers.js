@@ -61,6 +61,23 @@ const validatePost = ({ title, content }) => {
   }
 };
 
+const authorizePost = (post, req) => {
+  if (post.creator._id.toString() !== req.userId) {
+    throwError(403, 'Cannot change other user\'s post.');
+  }
+};
+
+const updatePostData = (post, data) => {
+  const updatedPost = post;
+  ['title', 'content'].forEach((prop) => {
+    updatedPost[prop] = data[prop];
+  });
+  if (data.imageURL !== 'undefined') {
+    updatedPost.imageURL = data.imageURL;
+  }
+  return updatedPost;
+};
+
 const preparePost = (post) => ({
   ...post._doc,
   _id: post._id.toString(),
@@ -130,6 +147,16 @@ module.exports = {
     if (!post) {
       throwError(404, 'Post not found.');
     }
+    return preparePost(post);
+  },
+
+  async updatePost({ _id, postInput }, req) {
+    validateAuth(req);
+    validatePost(postInput);
+    let post = await Post.findById(_id).populate('creator');
+    authorizePost(post, req);
+    post = updatePostData(post, postInput);
+    await post.save();
     return preparePost(post);
   },
 };
