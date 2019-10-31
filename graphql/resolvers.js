@@ -2,6 +2,8 @@ require('dotenv').config();
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 
 const User = require('../models/user');
 const Post = require('../models/post');
@@ -61,8 +63,9 @@ const validatePost = ({ title, content }) => {
   }
 };
 
-const authorizePost = (post, req) => {
-  if (post.creator._id.toString() !== req.userId) {
+const authorizePost = (post, req, remove = false) => {
+  const creatorId = (remove ? post.creator : post.creator._id).toString();
+  if (creatorId !== req.userId) {
     throwError(403, 'Cannot change other user\'s post.');
   }
 };
@@ -158,5 +161,21 @@ module.exports = {
     post = updatePostData(post, postInput);
     await post.save();
     return preparePost(post);
+  },
+
+  async deletePost({ _id }, req) {
+    try {
+      validateAuth(req);
+      const post = await Post.findById(_id);
+      authorizePost(post, req, true);
+      fs.unlink(path.join(__dirname, '..', post.imageURL), () => { });
+      await post.remove();
+      const user = await User.findById(req.userId);
+      user.posts.pull(_id);
+      await user.save();
+      return true;
+    } catch (err) {
+      return false;
+    }
   },
 };
