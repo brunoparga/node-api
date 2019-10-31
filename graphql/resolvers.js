@@ -48,16 +48,13 @@ const validateLogin = async ({ email, password }) => {
   return user;
 };
 
-const validatePost = ({ title, content, imageURL }) => {
+const validatePost = ({ title, content }) => {
   const errors = [];
   if (!validator.isLength(title, { min: 5 })) {
     errors.push('Title must be 5 characters long.');
   }
   if (!validator.isLength(content, { min: 5 })) {
     errors.push('Content must be 5 characters long.');
-  }
-  if (!validator.isURL(imageURL)) {
-    errors.push('Image URL must be valid.');
   }
   if (errors.length > 0) {
     throwError(422, 'Invalid input', errors);
