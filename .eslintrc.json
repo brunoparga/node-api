@@ -3,9 +3,11 @@
     "mocha": true
   },
   "plugins": [
+    "chai-friendly",
     "mocha"
   ],
   "extends": [
+    "plugin:chai-friendly/recommended",
     "plugin:mocha/recommended"
   ],
   "rules": {

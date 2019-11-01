@@ -10,6 +10,7 @@ const forwardError = (err, next) => {
     newErr.statusCode = 500;
   }
   next(newErr);
+  return newErr;
 };
 
 const handleErrors = (req) => {
@@ -71,9 +72,9 @@ exports.login = async (req, res, next) => {
     const match = await bcrypt.compare(password, user.password);
     checkPassword(match);
     const token = createToken(user);
-    res.status(200).json({ token, userId: user._id.toString() });
+    return res.status(200).json({ token, userId: user._id.toString() });
   } catch (err) {
-    forwardError(err, next);
+    return forwardError(err, next);
   }
 };
 
