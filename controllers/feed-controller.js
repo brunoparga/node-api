@@ -105,11 +105,12 @@ exports.createPost = async (req, res, next) => {
     await post.save();
     const user = await User.findById(req.userId);
     user.posts.push(post);
-    await user.save();
+    const savedUser = await user.save();
     const creator = (({ _id, name }) => ({ _id, name }))(user);
     res.status(201).json({ post, creator });
+    return savedUser;
   } catch (err) {
-    forwardError(err, next);
+    return forwardError(err, next);
   }
 };
 
