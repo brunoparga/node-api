@@ -1,5 +1,16 @@
 {
+  "env": {
+    "mocha": true
+  },
+  "plugins": [
+    "mocha"
+  ],
+  "extends": [
+    "plugin:mocha/recommended"
+  ],
   "rules": {
+    "prefer-arrow-callback": 0,
+    "mocha/prefer-arrow-callback": 2,
     "no-underscore-dangle": [
       "error",
       {
